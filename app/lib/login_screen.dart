@@ -12,6 +12,9 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _salaryController =
+      TextEditingController(text: "1518.00");
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -25,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen>
     _fadeAnimation =
         CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
     _animationController.forward();
+
+    _loadUserData();
   }
 
   @override
@@ -33,11 +38,28 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  Future<void> _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? savedName = prefs.getString('username');
+    double? savedSalary = prefs.getDouble('salary');
+
+    if (savedName != null) {
+      _nameController.text = savedName;
+    }
+    if (savedSalary != null) {
+      _salaryController.text = savedSalary.toStringAsFixed(2);
+    }
+  }
+
   Future<void> _saveUser() async {
-    if (_nameController.text.isNotEmpty) {
+    if (_nameController.text.isNotEmpty && _salaryController.text.isNotEmpty) {
+      double salary = double.tryParse(_salaryController.text) ?? 0;
+
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('username', _nameController.text);
-      await prefs.setDouble('saldo', 1518.0);
+      await prefs.setDouble('salary', salary);
+      await prefs.setDouble('saldo', salary);
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -92,7 +114,23 @@ class _LoginScreenState extends State<LoginScreen>
                     controller: _nameController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: "Digite seu nome",
+                      labelText: "Seu nome",
+                      labelStyle: const TextStyle(color: Colors.white),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.2),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _salaryController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: "Salário mensal",
                       labelStyle: const TextStyle(color: Colors.white),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.2),
@@ -115,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                     onPressed: _saveUser,
                     child: const Text(
-                      "Começar",
+                      "Salvar e Entrar",
                       style: TextStyle(fontSize: 18),
                     ),
                   )
