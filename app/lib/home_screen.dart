@@ -43,15 +43,66 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _addGasto(String descricao, double valor) async {
+  Future<void> _saveGastos() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+        'gastos', _gastos.map((e) => "${e['descricao']}|${e['valor']}").toList());
+    await prefs.setDouble('saldo', _saldo);
+  }
+
+  Future<void> _addGasto(String descricao, double valor) async {
     setState(() {
       _gastos.add({"descricao": descricao, "valor": valor});
       _saldo -= valor;
     });
-    await prefs.setDouble('saldo', _saldo);
-    await prefs.setStringList(
-        'gastos', _gastos.map((e) => "${e['descricao']}|${e['valor']}").toList());
+    await _saveGastos();
+  }
+
+  Future<void> _editarGasto(int index) async {
+    TextEditingController descController =
+        TextEditingController(text: _gastos[index]['descricao']);
+    TextEditingController valorController =
+        TextEditingController(text: _gastos[index]['valor'].toString());
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Editar Gasto"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: descController, decoration: const InputDecoration(labelText: "Descrição")),
+            TextField(controller: valorController, decoration: const InputDecoration(labelText: "Valor"), keyboardType: TextInputType.number),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+          TextButton(
+            onPressed: () async {
+              double oldValor = _gastos[index]['valor'];
+              double novoValor = double.tryParse(valorController.text) ?? oldValor;
+
+              setState(() {
+                _gastos[index]['descricao'] = descController.text;
+                _gastos[index]['valor'] = novoValor;
+                _saldo += oldValor - novoValor; // Ajusta o saldo
+              });
+              await _saveGastos();
+              Navigator.pop(context);
+            },
+            child: const Text("Salvar"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _excluirGasto(int index) async {
+    setState(() {
+      _saldo += _gastos[index]['valor'];
+      _gastos.removeAt(index);
+    });
+    await _saveGastos();
   }
 
   Future<void> _editarUsuario() async {
@@ -172,7 +223,20 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, index) {
                 return ListTile(
                   title: Text(_gastos[index]['descricao']),
-                  trailing: Text("- R\$ ${_gastos[index]['valor'].toStringAsFixed(2)}"),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                        onPressed: () => _editarGasto(index),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () => _excluirGasto(index),
+                      ),
+                    ],
+                  ),
+                  subtitle: Text("R\$ ${_gastos[index]['valor'].toStringAsFixed(2)}"),
                 );
               },
             ),
