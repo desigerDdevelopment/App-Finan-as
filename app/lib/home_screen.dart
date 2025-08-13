@@ -13,7 +13,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  double _saldo = 1518.0;
+  double _saldo = 0.0;
+  double _salarioMensal = 0.0;
+  String _username = "";
   List<Map<String, dynamic>> _gastos = [];
 
   @override
@@ -25,7 +27,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _saldo = prefs.getDouble('saldo') ?? 1518.0;
+      _username = prefs.getString('username') ?? widget.username;
+      _salarioMensal = prefs.getDouble('salary') ?? 1518.0;
+      _saldo = prefs.getDouble('saldo') ?? _salarioMensal;
+
       List<String>? savedExpenses = prefs.getStringList('gastos');
       if (savedExpenses != null) {
         _gastos = savedExpenses
@@ -47,6 +52,47 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setDouble('saldo', _saldo);
     await prefs.setStringList(
         'gastos', _gastos.map((e) => "${e['descricao']}|${e['valor']}").toList());
+  }
+
+  Future<void> _editarUsuario() async {
+    TextEditingController nomeController = TextEditingController(text: _username);
+    TextEditingController salarioController = TextEditingController(text: _salarioMensal.toStringAsFixed(2));
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Editar Usuário"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nomeController, decoration: const InputDecoration(labelText: "Nome")),
+            TextField(controller: salarioController, decoration: const InputDecoration(labelText: "Salário Mensal"), keyboardType: TextInputType.number),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+          TextButton(
+            onPressed: () async {
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              double novoSalario = double.tryParse(salarioController.text) ?? _salarioMensal;
+
+              setState(() {
+                _username = nomeController.text;
+                _salarioMensal = novoSalario;
+                _saldo = novoSalario; // reinicia saldo com novo salário
+              });
+
+              await prefs.setString('username', _username);
+              await prefs.setDouble('salary', _salarioMensal);
+              await prefs.setDouble('saldo', _saldo);
+
+              Navigator.pop(context);
+            },
+            child: const Text("Salvar"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showAddGastoDialog() {
@@ -84,8 +130,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Bem-vindo, ${widget.username}"),
+        title: Text("Bem-vindo, $_username"),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: _editarUsuario,
+          ),
           IconButton(
             icon: const Icon(Icons.exit_to_app),
             onPressed: () async {
@@ -111,6 +161,8 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           const SizedBox(height: 10),
+          Text("Salário Mensal: R\$ ${_salarioMensal.toStringAsFixed(2)}",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
           Text("Saldo restante: R\$ ${_saldo.toStringAsFixed(2)}",
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const Divider(),
