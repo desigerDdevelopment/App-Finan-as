@@ -1,3 +1,4 @@
+import 'package:app/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -181,22 +182,50 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Bem-vindo, $_username"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: _editarUsuario,
+  title: Text("Bem-vindo"),
+  actions: [
+    Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: GestureDetector(
+        onTap: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProfileScreen(
+                username: _username,
+                salary: _salarioMensal,
+              ),
+            ),
+          );
+
+          if (result != null) {
+            setState(() {
+              _username = result["username"];
+              _salarioMensal = result["salary"];
+              _saldo = _salarioMensal;
+            });
+          }
+        },
+        child: CircleAvatar(
+          backgroundColor: Colors.blueAccent,
+          child: Text(
+            _username.isNotEmpty ? _username[0].toUpperCase() : "?",
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: () async {
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-              if (mounted) Navigator.pushReplacementNamed(context, '/');
-            },
-          )
-        ],
+        ),
       ),
+    ),
+    IconButton(
+      icon: const Icon(Icons.exit_to_app),
+      onPressed: () async {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+        if (mounted) Navigator.pushReplacementNamed(context, '/');
+      },
+    )
+  ],
+),
+
       body: Column(
         children: [
           TableCalendar(
