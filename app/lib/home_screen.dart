@@ -89,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _saldo += oldValor - novoValor; // Ajusta o saldo
               });
               await _saveGastos();
+              // ignore: use_build_context_synchronously
               Navigator.pop(context);
             },
             child: const Text("Salvar"),
@@ -106,46 +107,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await _saveGastos();
   }
 
-  Future<void> _editarUsuario() async {
-    TextEditingController nomeController = TextEditingController(text: _username);
-    TextEditingController salarioController = TextEditingController(text: _salarioMensal.toStringAsFixed(2));
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Editar Usuário"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nomeController, decoration: const InputDecoration(labelText: "Nome")),
-            TextField(controller: salarioController, decoration: const InputDecoration(labelText: "Salário Mensal"), keyboardType: TextInputType.number),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-          TextButton(
-            onPressed: () async {
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              double novoSalario = double.tryParse(salarioController.text) ?? _salarioMensal;
-
-              setState(() {
-                _username = nomeController.text;
-                _salarioMensal = novoSalario;
-                _saldo = novoSalario; // reinicia saldo com novo salário
-              });
-
-              await prefs.setString('username', _username);
-              await prefs.setDouble('salary', _salarioMensal);
-              await prefs.setDouble('saldo', _saldo);
-
-              Navigator.pop(context);
-            },
-            child: const Text("Salvar"),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showAddGastoDialog() {
     TextEditingController descController = TextEditingController();
@@ -220,6 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onPressed: () async {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.clear();
+        // ignore: use_build_context_synchronously
         if (mounted) Navigator.pushReplacementNamed(context, '/');
       },
     )
